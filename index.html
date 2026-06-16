@@ -202,41 +202,11 @@
         };
 
         // --- DATOS INICIALES MOCK (CSV EN DURO) ---
-        const INITIAL_CSV_DATA = `NroCtrat;RsocialVendedor;RsocialComprador;Procedencia;FechaDeEntregaDesde;FechaDeEntregaHasta;Mercaderia;KgFaltaEntregar;DescTipoCtrat;Destino;Cosecha;Condicion de produccion.;RepreVendedor
-703395/0/2;JUMEIRA AGRO S.A.;ARGENTRADING S.A.;Teodelina;01/01/26;31/01/26;Soja;15000;a Precio CG;ZONA ROSARIO TOTAL;2425;PRODUCTOR;ADRIAN OLIVIERI
-703748/0/2;JUMEIRA AGRO S.A.;ARGENTRADING S.A.;Teodelina;01/02/26;28/02/26;Trigo;140000;a Fijar;ZONA ROSARIO TOTAL;2526;PRODUCTOR;ADRIAN OLIVIERI
-705495/0/2;MERLO Y MANAVELLA S.A.;ARGENTRADING S.A.;Adelia Maria;30/01/26;01/03/26;Soja;11530;a Precio;ZONA ROSARIO NORTE;2425;ACOPIADOR CONSIGNATARIO;ADRIAN OLIVIERI
-705782/0/2;NUSEED S.A.;ARGENTRADING S.A.;Venado Tuerto;15/01/26;15/02/26;Maiz;250000;a Fijar;ZONA ROSARIO NORTE;2425;PRODUCTOR;ADRIAN OLIVIERI`;
-
         // Datos iniciales para la Grilla 1 ACTUALIZADOS
         const INITIAL_BUYER_QUOTAS = [
             { id: 'bq1', producto: 'Soja', comprador: 'ARGENTRADING S.A.', rteComercialPrimaria: 'JUMEIRA AGRO S.A.', rteComercialSecundaria: '', corredorPrimaria: '', corredorSecundaria: '', obsCalidad: 'Conforme', destinatario: 'TERMINAL 6 S.A.', destino: 'ZONA ROSARIO NORTE', condicion: 'C/Descarga', compVendA3: '', observaciones: 'Cupos directos', otorgados: 50, asignados: 0, anulados: 0, devueltos: 0, alfanumericos: [] },
             { id: 'bq2', producto: 'Maiz', comprador: 'BUNGE ARGENTINA S.A.', rteComercialPrimaria: 'MERLO Y MANAVELLA S.A.', rteComercialSecundaria: '', corredorPrimaria: '', corredorSecundaria: '', obsCalidad: '', destinatario: 'BUNGE PUERTO G.S.M.', destino: 'TERMINAL 6 S.A.', condicion: 'S/Descarga', compVendA3: 'MATBA ROFEX S.A.', observaciones: '', otorgados: 100, asignados: 20, anulados: 5, devueltos: 2, alfanumericos: [] },
         ];
-
-        // --- PARSER CSV ---
-        const parseCSV = (csvText) => {
-            const lines = csvText.trim().split('\n');
-            return lines.slice(1).map(line => {
-                const values = line.split(';');
-                if (values.length < 5) return null;
-                return {
-                    contrato: values[0] ? values[0].trim() : '',
-                    vendedor: values[1] ? values[1].trim() : '',
-                    comprador: values[2] ? values[2].trim() : '',
-                    procedencia: values[3] ? values[3].trim() : '',
-                    desde: values[4] ? values[4].trim() : '',
-                    hasta: values[5] ? values[5].trim() : '',
-                    producto: values[6] ? values[6].trim() : '',
-                    kg: parseInt(values[7] ? values[7].replace(/\./g,'') : '0'),
-                    tipo: values[8] ? values[8].trim() : '', 
-                    destino: values[9] ? values[9].trim() : '',
-                    cosecha: values[10] ? values[10].trim() : '',
-                    origen: values[11] ? values[11].trim() : '', 
-                    repre: values[12] ? values[12].trim() : ''
-                };
-            }).filter(item => item !== null);
-        };
 
         const formatDateDisplay = (dateStr) => {
             if (!dateStr) return '';
@@ -284,8 +254,8 @@
         // ====================================================================
         // SUPABASE: configuración y cliente
         // ====================================================================
-        const SUPABASE_URL = 'https://yfmqfafrvgydfnzsllcx.supabase.co';
-        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2ZCuxfolQ8OfAMnmazA7XQ_wV2EsoFI';
+        const SUPABASE_URL = 'PEGAR_AQUI_TU_PROJECT_URL';
+        const SUPABASE_PUBLISHABLE_KEY = 'PEGAR_AQUI_TU_PUBLISHABLE_KEY';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
         // ====================================================================
@@ -1944,8 +1914,6 @@
             const [clientes, reloadClientes] = useSupabaseTable('clientes', mapClienteFromDb, { orderBy: 'cliente', ascending: true });
             const [contratos, reloadContratos] = useSupabaseTable('contratos', mapContratoFromDb, { orderBy: 'nro_contrato', ascending: true });
             
-            const [dbPendientes, setDbPendientes] = useState(parseCSV(INITIAL_CSV_DATA));
-
             // Rol y filtrado de datos según usuario (calculado siempre, antes de cualquier return)
             const isAnalista = currentUser?.rol === 'analista';
             const misClientes = useMemo(() => {
@@ -2297,7 +2265,6 @@
                                 requests={visibleRequests} reloadRequests={reloadRequests}
                                 buyerQuotas={buyerQuotas} reloadBuyerQuotas={reloadBuyerQuotas}
                                 assignedQuotas={visibleAssigned} reloadAssigned={reloadAssigned}
-                                dbData={dbPendientes}
                                 cpTemplates={cpTemplates} reloadTemplates={reloadTemplates}
                                 destinos={destinos} intervinientes={intervinientes}
                                 isAnalista={isAnalista}
@@ -2324,7 +2291,7 @@
         }
 
         // --- DASHBOARD ADMIN (LAS 3 GRILLAS + FILTRO MAESTRO) ---
-        function AdminDashboard({ requests, reloadRequests, buyerQuotas, reloadBuyerQuotas, assignedQuotas, reloadAssigned, dbData, cpTemplates, reloadTemplates, destinos, intervinientes, isAnalista }) {
+        function AdminDashboard({ requests, reloadRequests, buyerQuotas, reloadBuyerQuotas, assignedQuotas, reloadAssigned, cpTemplates, reloadTemplates, destinos, intervinientes, isAnalista }) {
             
             // UTILIDAD PARA LIMPIAR CUIT DE GRILLAS
             const stripCuit = (str) => {
@@ -2409,9 +2376,9 @@
             const [viewingCpData, setViewingCpData] = useState(null); 
 
             // Generar Opciones Únicas para los Filtros
-            const allProducts = useMemo(() => [...new Set([...requests.map(r => r.product), ...assignedQuotas.map(q => q.product), ...dbData.map(d => d.producto)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas, dbData]);
-            const allRepres = useMemo(() => [...new Set([...requests.map(r => r.contractRepre), ...assignedQuotas.map(q => q.contractRepre), ...dbData.map(d => d.repre)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas, dbData]);
-            const allDestinations = useMemo(() => [...new Set([...requests.map(r => r.contractDestino), ...assignedQuotas.map(q => q.contractDestino), ...dbData.map(d => d.destino)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas, dbData]);
+            const allProducts = useMemo(() => [...new Set([...requests.map(r => r.product), ...assignedQuotas.map(q => q.product)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas]);
+            const allRepres = useMemo(() => [...new Set([...requests.map(r => r.contractRepre), ...assignedQuotas.map(q => q.contractRepre)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas]);
+            const allDestinations = useMemo(() => [...new Set([...requests.map(r => r.contractDestino), ...assignedQuotas.map(q => q.contractDestino)].map(x => (x || '').toString().trim().toUpperCase()))].filter(Boolean).sort(), [requests, assignedQuotas]);
 
             const changeDate = (d) => { 
                 const base = date || new Date().toISOString().slice(0,10);
