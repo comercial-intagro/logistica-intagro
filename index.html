@@ -254,8 +254,8 @@
         // ====================================================================
         // SUPABASE: configuración y cliente
         // ====================================================================
-        const SUPABASE_URL = 'https://yfmqfafrvgydfnzsllcx.supabase.co';
-        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2ZCuxfolQ8OfAMnmazA7XQ_wV2EsoFI';
+        const SUPABASE_URL = 'PEGAR_AQUI_TU_PROJECT_URL';
+        const SUPABASE_PUBLISHABLE_KEY = 'PEGAR_AQUI_TU_PUBLISHABLE_KEY';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
         // ====================================================================
@@ -490,6 +490,24 @@
         }
 
         // COMPONENTE FILA PARA FORMULARIO COMPACTO (ESTILO CARTA DE PORTE)
+        // Select que tolera valores guardados que ya no están en la lista de opciones
+        // (ej: plantillas viejas con formato "CUIT - Descripción"). Si el valor no existe
+        // entre las opciones, lo agrega para que no se pierda el dato.
+        const TolerantSelect = ({ value, onChange, options, className, placeholder = 'Seleccionar...' }) => {
+            const opts = useMemo(() => {
+                const base = (options || []).filter(Boolean);
+                const v = (value || '').toString();
+                if (v && !base.some(o => o === v)) return [v, ...base];
+                return base;
+            }, [options, value]);
+            return (
+                <select className={className} value={value || ''} onChange={onChange}>
+                    <option value="">{placeholder}</option>
+                    {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+            );
+        };
+
         const FormRow = ({ label, required, children }) => (
             <div className="flex items-center gap-4 py-1.5 border-b border-slate-200/60 last:border-0 hover:bg-blue-50/50 px-4 transition-colors">
                 <label className="w-1/3 md:w-[30%] text-[10px] font-bold text-slate-700 uppercase text-left leading-tight shrink-0" title={label}>
@@ -666,25 +684,25 @@
                                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 py-1.5 border-b border-slate-200/60 hover:bg-blue-50/50 px-4 transition-colors">
                                     <div className="flex items-center gap-2 w-full md:w-1/2">
                                         <label className="w-1/3 md:w-[30%] text-[10px] font-bold text-slate-700 uppercase text-left leading-tight shrink-0">Producto <span className="text-red-500">*</span></label>
-                                        <select className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.producto} onChange={e=>handleChange('producto', e.target.value)}><option value="">Seleccionar...</option>{MOCK_OPTIONS.productos.map(o=><option key={o} value={o}>{o}</option>)}</select>
+                                        <TolerantSelect className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.producto} onChange={e=>handleChange('producto', e.target.value)} options={MOCK_OPTIONS.productos} />
                                     </div>
                                     <div className="flex items-center gap-2 w-full md:w-1/2">
                                         <label className="w-1/3 md:w-[30%] text-[10px] font-bold text-slate-700 uppercase text-left leading-tight shrink-0">Comprador <span className="text-red-500">*</span></label>
-                                        <select className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.comprador} onChange={e=>handleChange('comprador', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select>
+                                        <TolerantSelect className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.comprador} onChange={e=>handleChange('comprador', e.target.value)} options={intervOpts} />
                                     </div>
                                 </div>
 
                                 <FormRow label="Observaciones Calidad"><input type="text" placeholder="Ej: Conforme, Condicional..." className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.observacionesCalidad} onChange={e=>handleChange('observacionesCalidad', e.target.value)} /></FormRow>
-                                <FormRow label="Rte. Comercial Venta Primaria"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaPrimaria} onChange={e=>handleChange('rteVentaPrimaria', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Rte. Comercial Venta Secundaria"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaSecundaria} onChange={e=>handleChange('rteVentaSecundaria', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Rte. Comercial Venta Secundaria 2"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaSecundaria2} onChange={e=>handleChange('rteVentaSecundaria2', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Mercado a Término"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.mercadoTermino} onChange={e=>handleChange('mercadoTermino', e.target.value)}><option value="">Seleccionar...</option>{MOCK_OPTIONS.mercados.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Corredor Venta Primaria"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.corredorPrimaria} onChange={e=>handleChange('corredorPrimaria', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Corredor Venta Secundaria"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.corredorSecundaria} onChange={e=>handleChange('corredorSecundaria', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Representante Entregador"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.repreEntregador} onChange={e=>handleChange('repreEntregador', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Representante Recibidor"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.repreRecibidor} onChange={e=>handleChange('repreRecibidor', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Destinatario"><select className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.destinatario} onChange={e=>handleChange('destinatario', e.target.value)}><option value="">Seleccionar...</option>{intervOpts.map(o=><option key={o} value={o}>{o}</option>)}</select></FormRow>
-                                <FormRow label="Destino"><select onMouseDown={onDestinoMouseDown} disabled={!form.producto} className={`w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${!form.producto ? 'bg-slate-100 cursor-not-allowed text-slate-400' : 'bg-slate-50 hover:bg-white'}`} value={form.destino} onChange={e=>selectDestino(e.target.value)}><option value="">{form.producto ? 'Seleccionar...' : 'Elegí producto primero'}</option>{destinosFiltrados.map(d=><option key={d.id} value={d.descripcion}>{d.descripcion}{d.codigoPlanta?` (Planta ${d.codigoPlanta})`:''}</option>)}</select></FormRow>
+                                <FormRow label="Rte. Comercial Venta Primaria"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaPrimaria} onChange={e=>handleChange('rteVentaPrimaria', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Rte. Comercial Venta Secundaria"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaSecundaria} onChange={e=>handleChange('rteVentaSecundaria', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Rte. Comercial Venta Secundaria 2"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.rteVentaSecundaria2} onChange={e=>handleChange('rteVentaSecundaria2', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Mercado a Término"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.mercadoTermino} onChange={e=>handleChange('mercadoTermino', e.target.value)} options={MOCK_OPTIONS.mercados} /></FormRow>
+                                <FormRow label="Corredor Venta Primaria"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.corredorPrimaria} onChange={e=>handleChange('corredorPrimaria', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Corredor Venta Secundaria"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.corredorSecundaria} onChange={e=>handleChange('corredorSecundaria', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Representante Entregador"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.repreEntregador} onChange={e=>handleChange('repreEntregador', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Representante Recibidor"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.repreRecibidor} onChange={e=>handleChange('repreRecibidor', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Destinatario"><TolerantSelect className="w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.destinatario} onChange={e=>handleChange('destinatario', e.target.value)} options={intervOpts} /></FormRow>
+                                <FormRow label="Destino"><select onMouseDown={onDestinoMouseDown} disabled={!form.producto} className={`w-full p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${!form.producto ? 'bg-slate-100 cursor-not-allowed text-slate-400' : 'bg-slate-50 hover:bg-white'}`} value={form.destino} onChange={e=>selectDestino(e.target.value)}><option value="">{form.producto ? 'Seleccionar...' : 'Elegí producto primero'}</option>{form.destino && !destinosFiltrados.some(d=>d.descripcion===form.destino) && <option value={form.destino}>{form.destino}</option>}{destinosFiltrados.map(d=><option key={d.id} value={d.descripcion}>{d.descripcion}{d.codigoPlanta?` (Planta ${d.codigoPlanta})`:''}</option>)}</select></FormRow>
 
                                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 py-1.5 border-b border-slate-200/60 hover:bg-blue-50/50 px-4 transition-colors">
                                     <div className="flex items-center gap-2 w-full md:w-[35%]">
@@ -700,11 +718,11 @@
                                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 py-1.5 border-b border-slate-200/60 hover:bg-blue-50/50 px-4 transition-colors">
                                     <div className="flex items-center gap-2 w-full md:w-1/2">
                                         <label className="w-1/3 md:w-[30%] text-[10px] font-bold text-slate-700 uppercase text-left leading-tight shrink-0">Localidad</label>
-                                        <select className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.localidad} onChange={e=>handleChange('localidad', e.target.value)}><option value="">Seleccionar...</option>{MOCK_OPTIONS.localidades.map(o=><option key={o} value={o}>{o}</option>)}</select>
+                                        <TolerantSelect className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.localidad} onChange={e=>handleChange('localidad', e.target.value)} options={MOCK_OPTIONS.localidades} />
                                     </div>
                                     <div className="flex items-center gap-2 w-full md:w-1/2">
                                         <label className="w-1/3 md:w-[30%] text-[10px] font-bold text-slate-700 uppercase text-left leading-tight shrink-0">Provincia</label>
-                                        <select className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.provincia} onChange={e=>handleChange('provincia', e.target.value)}><option value="">Seleccionar...</option>{MOCK_OPTIONS.provincias.map(o=><option key={o} value={o}>{o}</option>)}</select>
+                                        <TolerantSelect className="flex-1 p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 hover:bg-white transition" value={form.provincia} onChange={e=>handleChange('provincia', e.target.value)} options={MOCK_OPTIONS.provincias} />
                                     </div>
                                 </div>
                                 
