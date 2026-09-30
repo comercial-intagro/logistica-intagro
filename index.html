@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestión de Cupos - Agro</title>
     
@@ -261,7 +265,7 @@
 
         // URL de la herramienta Análisis de Turnos (STOP) publicada en GitHub Pages.
         // REEMPLAZAR por la dirección real cuando se publique el archivo analisis_turno.html.
-        const URL_ANALISIS_TURNOS = 'https://comercial-intagro.github.io/estadistica.logistica/';
+        const URL_ANALISIS_TURNOS = 'PEGAR_URL_ANALISIS_TURNOS';
 
         // ====================================================================
         // AUTENTICACIÓN (tabla propia de usuarios)
@@ -2169,6 +2173,12 @@
                     }
 
                     reloadAssigned();
+
+                    // Marca de última actualización de STOP (para avisar a Análisis de Turnos y otras pantallas)
+                    try {
+                        await sb.from('app_meta').upsert({ key: 'ultima_actualizacion_stop', value: new Date().toISOString() }, { onConflict: 'key' });
+                    } catch(e) { console.error('No se pudo guardar la marca de actualización STOP', e); }
+
                     alert(`✅ Importación STOP completada.\n\n• Alfanuméricos en el STOP: ${totalStop}\n• Cupos ACTUALIZADOS: ${actualizados - errores}\n• Sin cambios (ya al día): ${sinCambio}\n• Sin coincidencia en STOP: ${sinMatch}\n• Protegidos (anulados/devueltos): ${protegidos}${errores > 0 ? '\n• Errores al guardar: ' + errores : ''}`);
                 } catch (e) {
                     alert('Error al procesar el STOP: ' + e.message);
