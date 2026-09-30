@@ -2142,6 +2142,7 @@
                     }
 
                     // Helpers para poblar turnos_stop
+                    const _stripCuit = (s) => (s||'').toString().replace(/^\s*\d{11}\s+/, '').trim();
                     const _limpProd = (s) => (s||'').toString().replace(/^\d+\s*-\s*/, '').trim().toUpperCase();
                     const _extCuit = (s) => { const m = (s||'').toString().match(/\d{11}/); return m ? m[0] : ''; };
                     const _parseFecha = (s) => {
@@ -2168,15 +2169,15 @@
                             estado: (r[idxEstado] || '').toString().trim(),
                             fecha: _parseFecha(r[idxFecha]),
                             producto: _limpProd(r[idxGrano]),
-                            destino: stripCuit(r[idxDestino]),
+                            destino: _stripCuit(r[idxDestino]),
                             localidad_destino: (r[idxLoc] || '').toString().trim(),
-                            comprador: stripCuit(r[idxDestinatario]),
+                            comprador: _stripCuit(r[idxDestinatario]),
                             ctg: ctg,
-                            origen: stripCuit(r[idxOrigen]),
+                            origen: _stripCuit(r[idxOrigen]),
                             origen_cuit: _extCuit(r[idxOrigen]),
-                            intermediario: stripCuit(r[idxInter]),
+                            intermediario: _stripCuit(r[idxInter]),
                             intermediario_cuit: _extCuit(r[idxInter]),
-                            rtte_comercial: stripCuit(r[idxRtte]),
+                            rtte_comercial: _stripCuit(r[idxRtte]),
                             rtte_comercial_cuit: _extCuit(r[idxRtte]),
                             contrato: (r[idxContrato] || '').toString().trim(),
                             activo_en_stop: true
