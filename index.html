@@ -394,6 +394,13 @@
             repreComercial: c.repre_comercial || ''
         });
 
+        const mapEquivRepreFromDb = (e) => ({
+            id: e.id,
+            mail: e.mail || '',
+            repreTexto: e.repre_texto || '',
+            repreAbm: e.repre_abm || ''
+        });
+
         const mapContratoFromDb = (c) => ({
             id: c.id,
             nroContrato: c.nro_contrato || '',
@@ -1307,7 +1314,106 @@
         // ====================================================================
         // ABM: Administración de Destinos, Plantillas e Intervinientes
         // ====================================================================
-        function ABMModal({ onClose, destinos, reloadDestinos, intervinientes, reloadIntervinientes, clientes, reloadClientes, cpTemplates, reloadTemplates, saveTemplate, productos, currentUser }) {
+        // --- Solapa Equivalencias de Representantes ---
+        // Mapea (mail + texto repre del Sheets) -> repre canónico del ABM de Clientes.
+        function ABMEquivRepres({ requests, clientes, equivRepres, reload }) {
+            const [search, setSearch] = useState('');
+            const [soloSinResolver, setSoloSinResolver] = useState(false);
+            const [guardando, setGuardando] = useState('');
+
+            const norm = (s) => (s||'').toString().trim().toUpperCase().replace(/\s+/g,' ');
+
+            const represAbm = useMemo(() => [...new Set((clientes||[]).map(c => (c.repreComercial||'').trim()).filter(Boolean))].sort(), [clientes]);
+
+            const mapaEquiv = useMemo(() => {
+                const m = {};
+                (equivRepres||[]).forEach(e => { m[norm(e.mail)+'||'+norm(e.repreTexto)] = e; });
+                return m;
+            }, [equivRepres]);
+
+            const duplas = useMemo(() => {
+                const map = {};
+                (requests||[]).forEach(r => {
+                    const mail = (r.emailComercial||'').trim();
+                    const texto = (r.contractRepre||'').trim();
+                    if (!mail && !texto) return;
+                    const key = norm(mail)+'||'+norm(texto);
+                    if (!map[key]) map[key] = { mail, texto, count: 0, key };
+                    map[key].count++;
+                });
+                return Object.values(map).sort((a,b) => b.count - a.count);
+            }, [requests]);
+
+            const filtradas = duplas.filter(d => {
+                const equiv = mapaEquiv[d.key];
+                if (soloSinResolver && equiv) return false;
+                if (!search) return true;
+                const s = search.toLowerCase();
+                return d.mail.toLowerCase().includes(s) || d.texto.toLowerCase().includes(s) || (equiv && equiv.repreAbm.toLowerCase().includes(s));
+            });
+
+            const sinResolver = duplas.filter(d => !mapaEquiv[d.key]).length;
+
+            const asignar = async (dupla, repreAbm) => {
+                setGuardando(dupla.key);
+                try {
+                    const existente = mapaEquiv[dupla.key];
+                    if (!repreAbm) {
+                        if (existente) { await sb.from('equiv_representantes').delete().eq('id', existente.id); reload(); }
+                        setGuardando(''); return;
+                    }
+                    if (existente) {
+                        await sb.from('equiv_representantes').update({ repre_abm: repreAbm }).eq('id', existente.id);
+                    } else {
+                        await sb.from('equiv_representantes').insert({ mail: dupla.mail, repre_texto: dupla.texto, repre_abm: repreAbm });
+                    }
+                    reload();
+                } catch(e) { alert('Error al guardar equivalencia: '+e.message); }
+                setGuardando('');
+            };
+
+            return (
+                <div className="h-full flex flex-col gap-3">
+                    <div className="bg-white rounded-lg border border-slate-200 p-3 shrink-0">
+                        <p className="text-xs text-slate-500 mb-2">Asigná a cada combinación de <b>mail + representante del Forms</b> el <b>Repre/Comercial correcto del ABM</b>. Esto se usa al asignar cupos para guardar el representante correcto.</p>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <input placeholder="Buscar mail, texto o repre..." value={search} onChange={e=>setSearch(e.target.value)} className="flex-1 min-w-[220px] max-w-sm p-1.5 border border-slate-300 rounded text-xs outline-none focus:border-emerald-500" />
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer">
+                                <input type="checkbox" checked={soloSinResolver} onChange={e=>setSoloSinResolver(e.target.checked)} /> Solo sin resolver
+                            </label>
+                            <span className="text-xs font-bold px-2 py-1 rounded bg-amber-100 text-amber-800 border border-amber-300">Sin resolver: {sinResolver}</span>
+                            <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">Resueltas: {duplas.length - sinResolver}</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-auto custom-scroll bg-white rounded-lg border border-slate-200">
+                        <table className="w-full text-left text-xs border-collapse">
+                            <thead className="sticky top-0 bg-slate-100 z-10"><tr>{['Mail','Repre/Comercial (Forms)','Solicitudes','Equivalencia ABM'].map(h=><th key={h} className="p-2 font-bold text-slate-600 border-b border-slate-200">{h}</th>)}</tr></thead>
+                            <tbody>
+                                {filtradas.map(d => {
+                                    const equiv = mapaEquiv[d.key];
+                                    return (
+                                        <tr key={d.key} className={`border-b border-slate-100 ${equiv ? 'even:bg-slate-50' : 'bg-amber-50/40'}`}>
+                                            <td className="p-2 font-mono text-[11px]">{d.mail || <span className="text-slate-300">(sin mail)</span>}</td>
+                                            <td className="p-2 font-bold text-slate-700">{d.texto || <span className="text-slate-300">(sin texto)</span>}</td>
+                                            <td className="p-2 text-center text-slate-500">{d.count}</td>
+                                            <td className="p-2">
+                                                <select value={equiv ? equiv.repreAbm : ''} disabled={guardando===d.key} onChange={e=>asignar(d, e.target.value)} className={`w-full p-1.5 border rounded text-xs outline-none focus:border-emerald-500 ${equiv ? 'border-emerald-300 bg-emerald-50 font-bold text-emerald-800' : 'border-amber-300 bg-white'}`}>
+                                                    <option value="">— Sin resolver —</option>
+                                                    {represAbm.map(r => <option key={r} value={r}>{r}</option>)}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {filtradas.length===0 && <tr><td colSpan="4" className="p-6 text-center text-slate-400 italic">No hay combinaciones que coincidan.</td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        function ABMModal({ onClose, destinos, reloadDestinos, intervinientes, reloadIntervinientes, clientes, reloadClientes, cpTemplates, reloadTemplates, saveTemplate, productos, currentUser, requests, equivRepres, reloadEquivRepres }) {
             const [tab, setTab] = useState('destinos');
             return (
                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
@@ -1319,7 +1425,7 @@
                         </div>
                         {/* Solapas */}
                         <div className="flex gap-1 px-4 pt-3 bg-slate-200/60 shrink-0">
-                            {[['destinos','Destinos'],['plantillas','Plantillas Carta de Porte'],['intervinientes','Intervinientes'],['clientes','Clientes'],['usuarios','Usuarios']].map(([k,label]) => (
+                            {[['destinos','Destinos'],['plantillas','Plantillas Carta de Porte'],['intervinientes','Intervinientes'],['clientes','Clientes'],['usuarios','Usuarios'],['equiv','Equivalencias Repre']].map(([k,label]) => (
                                 <button key={k} onClick={()=>setTab(k)} className={`px-4 py-2 rounded-t-lg text-sm font-bold transition ${tab===k ? 'bg-slate-100 text-emerald-800 shadow-sm' : 'bg-slate-300/50 text-slate-500 hover:bg-slate-300'}`}>{label}</button>
                             ))}
                         </div>
@@ -1330,6 +1436,7 @@
                             {tab==='clientes' && <ABMClientes clientes={clientes} reload={reloadClientes} />}
                             {tab==='usuarios' && <ABMUsuarios currentUser={currentUser} clientes={clientes} />}
                             {tab==='plantillas' && <ABMPlantillas cpTemplates={cpTemplates} reloadTemplates={reloadTemplates} saveTemplate={saveTemplate} />}
+                            {tab==='equiv' && <ABMEquivRepres requests={requests} clientes={clientes} equivRepres={equivRepres} reload={reloadEquivRepres} />}
                         </div>
                     </div>
                 </div>
@@ -1940,6 +2047,7 @@
             const [intervinientes, reloadIntervinientes] = useSupabaseTable('intervinientes', mapIntervinienteFromDb, { orderBy: 'descripcion', ascending: true });
             const [clientes, reloadClientes] = useSupabaseTable('clientes', mapClienteFromDb, { orderBy: 'cliente', ascending: true });
             const [contratos, reloadContratos] = useSupabaseTable('contratos', mapContratoFromDb, { orderBy: 'nro_contrato', ascending: true });
+            const [equivRepres, reloadEquivRepres] = useSupabaseTable('equiv_representantes', mapEquivRepreFromDb, { orderBy: 'mail', ascending: true });
             
             // Rol y filtrado de datos según usuario (calculado siempre, antes de cualquier return)
             const isAnalista = currentUser?.rol === 'analista';
@@ -2399,6 +2507,8 @@
                             saveTemplate={saveTemplateGlobal}
                             productos={MOCK_OPTIONS.productos}
                             currentUser={currentUser}
+                            requests={requests}
+                            equivRepres={equivRepres} reloadEquivRepres={reloadEquivRepres}
                         />
                     )}
                 </div>
@@ -2743,6 +2853,12 @@
                 const req = requests.find(r => r.id === reqId);
                 if (!req || allocationsArray.length === 0) return;
 
+                // Resolver el repre canónico del ABM según la equivalencia (mail + texto del Forms)
+                const _normEq = (s) => (s||'').toString().trim().toUpperCase().replace(/\s+/g,' ');
+                const claveReq = _normEq(req.emailComercial) + '||' + _normEq(req.contractRepre);
+                const equivMatch = (equivRepres||[]).find(e => _normEq(e.mail)+'||'+_normEq(e.repreTexto) === claveReq);
+                const repreResuelto = equivMatch ? equivMatch.repreAbm : (req.contractRepre || '');
+
                 try {
                     let totalAssigned = 0;
                     const newAssignedItems = [];
@@ -2775,7 +2891,7 @@
                                 product: req.product || '',
                                 contract: req.contract || '',
                                 contract_destino: req.contractDestino || '',
-                                contract_repre: req.contractRepre || '',
+                                contract_repre: repreResuelto,
                                 contract_comprador: req.contractComprador || '',
                                 contract_desde: req.contractDesde || '',
                                 contract_hasta: req.contractHasta || '',
